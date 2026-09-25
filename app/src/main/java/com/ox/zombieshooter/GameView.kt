@@ -779,9 +779,18 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback,
     }
 
     private fun zombieColor(type: Int): Int = when (type) {
-        0 -> Color.rgb(62, 122, 78)
-        1 -> Color.rgb(122, 162, 58)
-        else -> Color.rgb(47, 85, 96)
+        0 -> Color.rgb(122, 162, 108)
+        1 -> Color.rgb(150, 176, 92)
+        else -> Color.rgb(104, 132, 140)
+    }
+
+    private fun shirtColor(type: Int): Int {
+        val base = zombieColor(type)
+        return Color.rgb(
+            (Color.red(base) * 0.42f).toInt(),
+            (Color.green(base) * 0.42f).toInt(),
+            (Color.blue(base) * 0.42f).toInt()
+        )
     }
 
     private fun drawZombies(c: Canvas) {
@@ -790,18 +799,51 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback,
             c.save()
             c.translate(z.x, z.y)
             c.rotate(Math.toDegrees(a.toDouble()).toFloat())
-            val body = if (z.flash > 0f) Color.WHITE else zombieColor(z.type)
-            val swing = sin(z.wobble) * z.radius * 0.15f
-            fill.color = body
-            c.drawCircle(z.radius * 0.9f, -z.radius * 0.75f + swing, z.radius * 0.32f, fill)
-            c.drawCircle(z.radius * 0.9f, z.radius * 0.75f - swing, z.radius * 0.32f, fill)
-            c.drawCircle(0f, 0f, z.radius, fill)
-            stroke.color = withAlpha(cBg, 200)
-            stroke.strokeWidth = 1.5f * density
-            c.drawCircle(0f, 0f, z.radius, stroke)
+
+            val r = z.radius
+            val skin = if (z.flash > 0f) Color.WHITE else zombieColor(z.type)
+            val shirt = if (z.flash > 0f) Color.WHITE else shirtColor(z.type)
+            val armSwingA = sin(z.wobble) * r * 0.32f
+            val armSwingB = sin(z.wobble + 3.1f) * r * 0.32f
+            val legOff = sin(z.wobble * 0.6f) * r * 0.18f
+
+            // shuffling legs
+            fill.color = shirt
+            c.drawRoundRect(RectF(-r * 0.9f, -r * 0.35f + legOff, -r * 0.15f, -r * 0.05f + legOff), r * 0.1f, r * 0.1f, fill)
+            c.drawRoundRect(RectF(-r * 0.9f, r * 0.05f - legOff, -r * 0.15f, r * 0.35f - legOff), r * 0.1f, r * 0.1f, fill)
+
+            // torso, hunched forward
+            c.drawRoundRect(RectF(-r * 0.5f, -r * 0.55f, r * 0.25f, r * 0.55f), r * 0.24f, r * 0.24f, fill)
+            fill.color = skin
+            c.drawCircle(-r * 0.12f, -r * 0.24f, r * 0.08f, fill)   // torn patch exposing skin
+            c.drawCircle(-r * 0.02f, r * 0.2f, r * 0.07f, fill)
+
+            // arms reaching forward, swinging out of sync
+            fill.color = skin
+            c.drawRoundRect(RectF(-r * 0.1f, -r * 0.55f + armSwingA, r * 0.85f, -r * 0.28f + armSwingA), r * 0.09f, r * 0.09f, fill)
+            c.drawRoundRect(RectF(-r * 0.1f, r * 0.28f + armSwingB, r * 0.85f, r * 0.55f + armSwingB), r * 0.09f, r * 0.09f, fill)
+            c.drawCircle(r * 0.88f, -r * 0.41f + armSwingA, r * 0.11f, fill)
+            c.drawCircle(r * 0.88f, r * 0.41f + armSwingB, r * 0.11f, fill)
+
+            // head
+            c.drawCircle(r * 0.55f, 0f, r * 0.4f, fill)
+            fill.color = withAlpha(Color.BLACK, 130)
+            c.drawCircle(r * 0.42f, -r * 0.3f, r * 0.07f, fill)   // matted hair tufts
+            c.drawCircle(r * 0.5f, -r * 0.37f, r * 0.06f, fill)
+            c.drawCircle(r * 0.33f, -r * 0.2f, r * 0.05f, fill)
+
+            fill.color = Color.rgb(18, 6, 6)
+            c.drawRoundRect(RectF(r * 0.62f, -r * 0.09f, r * 0.86f, r * 0.09f), r * 0.04f, r * 0.04f, fill)   // gaping mouth
+
             fill.color = cRed
-            c.drawCircle(z.radius * 0.45f, -z.radius * 0.35f, z.radius * 0.14f, fill)
-            c.drawCircle(z.radius * 0.45f, z.radius * 0.35f, z.radius * 0.14f, fill)
+            c.drawCircle(r * 0.58f, -r * 0.2f, r * 0.06f, fill)
+            c.drawCircle(r * 0.58f, r * 0.2f, r * 0.06f, fill)
+
+            stroke.color = withAlpha(cBg, 190)
+            stroke.strokeWidth = 1.2f * density
+            c.drawRoundRect(RectF(-r * 0.5f, -r * 0.55f, r * 0.25f, r * 0.55f), r * 0.24f, r * 0.24f, stroke)
+            c.drawCircle(r * 0.55f, 0f, r * 0.4f, stroke)
+
             c.restore()
         }
     }
@@ -816,12 +858,15 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback,
     }
 
     private fun drawPlayer(c: Canvas) {
-        val armor = Color.rgb(46, 58, 54)
-        val armorHi = Color.rgb(66, 84, 78)
+        val jacket = Color.rgb(52, 80, 62)
+        val jacketHi = Color.rgb(72, 104, 82)
         val pants = Color.rgb(33, 41, 39)
-        val helmet = Color.rgb(22, 28, 27)
-        val visor = if (hurt > 0f) Color.rgb(255, 120, 120) else cNeon
+        val skin = Color.rgb(222, 176, 140)
+        val hair = Color.rgb(44, 32, 25)
+        val hurtTint = Color.rgb(255, 120, 120)
         val gunColor = Color.rgb(18, 19, 21)
+        val bodyColor = if (hurt > 0f) hurtTint else jacket
+        val trimColor = if (hurt > 0f) hurtTint else jacketHi
 
         // soft ground shadow, drawn unrotated so it doesn't spin with the body
         c.save()
@@ -845,31 +890,39 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback,
         c.drawRoundRect(RectF(pr * 0.75f, -pr * 0.08f, pr * 2.05f, pr * 0.08f), pr * 0.05f, pr * 0.05f, fill)
         c.drawRect(pr * 1.0f, -pr * 0.28f, pr * 1.18f, -pr * 0.08f, fill)
 
-        // torso
-        fill.color = armor
-        c.drawRoundRect(RectF(-pr * 0.55f, -pr * 0.78f, pr * 0.7f, pr * 0.78f), pr * 0.38f, pr * 0.38f, fill)
-        fill.color = withAlpha(visor, 60)
-        c.drawRoundRect(RectF(-pr * 0.3f, -pr * 0.14f, pr * 0.35f, pr * 0.14f), pr * 0.08f, pr * 0.08f, fill)
+        // torso (jacket)
+        fill.color = bodyColor
+        c.drawRoundRect(RectF(-pr * 0.55f, -pr * 0.75f, pr * 0.55f, pr * 0.75f), pr * 0.35f, pr * 0.35f, fill)
+        stroke.color = withAlpha(Color.BLACK, 70)
+        stroke.strokeWidth = 1f * density
+        c.drawLine(0f, -pr * 0.7f, 0f, pr * 0.7f, stroke)
 
-        // shoulder pads / arms reaching for the gun
-        fill.color = armorHi
-        c.drawCircle(-pr * 0.1f, -pr * 0.85f, pr * 0.3f, fill)
-        c.drawCircle(-pr * 0.1f, pr * 0.85f, pr * 0.3f, fill)
-        c.drawRoundRect(RectF(pr * 0.15f, -pr * 0.55f, pr * 0.95f, -pr * 0.18f), pr * 0.14f, pr * 0.14f, fill)
-        c.drawRoundRect(RectF(pr * 0.15f, pr * 0.18f, pr * 0.95f, pr * 0.55f), pr * 0.14f, pr * 0.14f, fill)
+        // sleeves reaching to the gun, with skin-tone hands
+        fill.color = trimColor
+        c.drawRoundRect(RectF(pr * 0.05f, -pr * 0.5f, pr * 0.75f, -pr * 0.18f), pr * 0.12f, pr * 0.12f, fill)
+        c.drawRoundRect(RectF(pr * 0.05f, pr * 0.18f, pr * 0.75f, pr * 0.5f), pr * 0.12f, pr * 0.12f, fill)
+        fill.color = skin
+        c.drawCircle(pr * 0.78f, -pr * 0.1f, pr * 0.16f, fill)
+        c.drawCircle(pr * 0.78f, pr * 0.1f, pr * 0.16f, fill)
 
-        // head + visor, facing forward
-        fill.color = helmet
-        c.drawCircle(pr * 0.55f, 0f, pr * 0.52f, fill)
-        fill.color = visor
-        c.drawRoundRect(RectF(pr * 0.58f, -pr * 0.3f, pr * 1.0f, pr * 0.3f), pr * 0.14f, pr * 0.14f, fill)
-        fill.color = withAlpha(Color.WHITE, 90)
-        c.drawRoundRect(RectF(pr * 0.64f, -pr * 0.24f, pr * 0.8f, -pr * 0.1f), pr * 0.06f, pr * 0.06f, fill)
+        // shoulders
+        fill.color = trimColor
+        c.drawCircle(-pr * 0.05f, -pr * 0.78f, pr * 0.26f, fill)
+        c.drawCircle(-pr * 0.05f, pr * 0.78f, pr * 0.26f, fill)
+
+        // head with hair covering the back, face showing on the facing side
+        fill.color = skin
+        c.drawCircle(pr * 0.5f, 0f, pr * 0.48f, fill)
+        fill.color = hair
+        c.drawArc(RectF(pr * 0.02f, -pr * 0.48f, pr * 0.98f, pr * 0.48f), 90f, 180f, true, fill)
+        fill.color = withAlpha(Color.BLACK, 160)
+        c.drawCircle(pr * 0.68f, -pr * 0.14f, pr * 0.045f, fill)
+        c.drawCircle(pr * 0.68f, pr * 0.14f, pr * 0.045f, fill)
 
         stroke.color = withAlpha(cBg, 160)
         stroke.strokeWidth = 1.2f * density
-        c.drawRoundRect(RectF(-pr * 0.55f, -pr * 0.78f, pr * 0.7f, pr * 0.78f), pr * 0.38f, pr * 0.38f, stroke)
-        c.drawCircle(pr * 0.55f, 0f, pr * 0.52f, stroke)
+        c.drawRoundRect(RectF(-pr * 0.55f, -pr * 0.75f, pr * 0.55f, pr * 0.75f), pr * 0.35f, pr * 0.35f, stroke)
+        c.drawCircle(pr * 0.5f, 0f, pr * 0.48f, stroke)
 
         c.restore()
     }
