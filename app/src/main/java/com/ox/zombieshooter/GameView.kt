@@ -98,6 +98,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback,
     private var cooldown = 0f
     private var hurt = 0f
     private var shake = 0f
+    private var walkCycle = 0f
 
     private var score = 0
     private var kills = 0
@@ -329,6 +330,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback,
         cooldown = 0f
         hurt = 0f
         shake = 0f
+        walkCycle = 0f
         score = 0
         kills = 0
         wave = 0
@@ -390,6 +392,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback,
         val speed = 175f * density
         px = (px + mx * speed * dt).coerceIn(pr, w - pr)
         py = (py + my * speed * dt).coerceIn(pr, h - pr)
+        if (mx != 0f || my != 0f) walkCycle += dt * 11f
 
         var aiming = false
         if (aimPointer != -1) {
@@ -813,18 +816,61 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback,
     }
 
     private fun drawPlayer(c: Canvas) {
+        val armor = Color.rgb(46, 58, 54)
+        val armorHi = Color.rgb(66, 84, 78)
+        val pants = Color.rgb(33, 41, 39)
+        val helmet = Color.rgb(22, 28, 27)
+        val visor = if (hurt > 0f) Color.rgb(255, 120, 120) else cNeon
+        val gunColor = Color.rgb(18, 19, 21)
+
+        // soft ground shadow, drawn unrotated so it doesn't spin with the body
+        c.save()
+        c.translate(px, py + pr * 0.35f)
+        fill.color = withAlpha(Color.BLACK, 70)
+        c.drawOval(RectF(-pr * 1.1f, -pr * 0.45f, pr * 1.1f, pr * 0.45f), fill)
+        c.restore()
+
         c.save()
         c.translate(px, py)
         c.rotate(Math.toDegrees(angle.toDouble()).toFloat())
-        fill.color = Color.rgb(154, 165, 160)
-        c.drawRect(pr * 0.4f, -pr * 0.18f, pr * 1.7f, pr * 0.18f, fill)
-        fill.color = if (hurt > 0f) Color.rgb(255, 120, 120) else cNeon
-        c.drawCircle(0f, 0f, pr, fill)
-        fill.color = Color.rgb(11, 42, 32)
-        c.drawCircle(pr * 0.15f, 0f, pr * 0.55f, fill)
-        fill.color = cNeon
-        c.drawCircle(pr * 0.55f, -pr * 0.6f, pr * 0.22f, fill)
-        c.drawCircle(pr * 0.55f, pr * 0.6f, pr * 0.22f, fill)
+
+        // legs, with a small walk-cycle offset so they alternate while moving
+        val legOff = pr * 0.22f * kotlin.math.sin(walkCycle)
+        fill.color = pants
+        c.drawRoundRect(RectF(-pr * 0.95f, -pr * 0.42f + legOff, -pr * 0.15f, -pr * 0.1f + legOff), pr * 0.12f, pr * 0.12f, fill)
+        c.drawRoundRect(RectF(-pr * 0.95f, pr * 0.1f - legOff, -pr * 0.15f, pr * 0.42f - legOff), pr * 0.12f, pr * 0.12f, fill)
+
+        // gun (drawn before the arms so the hands appear to grip it)
+        fill.color = gunColor
+        c.drawRoundRect(RectF(pr * 0.75f, -pr * 0.08f, pr * 2.05f, pr * 0.08f), pr * 0.05f, pr * 0.05f, fill)
+        c.drawRect(pr * 1.0f, -pr * 0.28f, pr * 1.18f, -pr * 0.08f, fill)
+
+        // torso
+        fill.color = armor
+        c.drawRoundRect(RectF(-pr * 0.55f, -pr * 0.78f, pr * 0.7f, pr * 0.78f), pr * 0.38f, pr * 0.38f, fill)
+        fill.color = withAlpha(visor, 60)
+        c.drawRoundRect(RectF(-pr * 0.3f, -pr * 0.14f, pr * 0.35f, pr * 0.14f), pr * 0.08f, pr * 0.08f, fill)
+
+        // shoulder pads / arms reaching for the gun
+        fill.color = armorHi
+        c.drawCircle(-pr * 0.1f, -pr * 0.85f, pr * 0.3f, fill)
+        c.drawCircle(-pr * 0.1f, pr * 0.85f, pr * 0.3f, fill)
+        c.drawRoundRect(RectF(pr * 0.15f, -pr * 0.55f, pr * 0.95f, -pr * 0.18f), pr * 0.14f, pr * 0.14f, fill)
+        c.drawRoundRect(RectF(pr * 0.15f, pr * 0.18f, pr * 0.95f, pr * 0.55f), pr * 0.14f, pr * 0.14f, fill)
+
+        // head + visor, facing forward
+        fill.color = helmet
+        c.drawCircle(pr * 0.55f, 0f, pr * 0.52f, fill)
+        fill.color = visor
+        c.drawRoundRect(RectF(pr * 0.58f, -pr * 0.3f, pr * 1.0f, pr * 0.3f), pr * 0.14f, pr * 0.14f, fill)
+        fill.color = withAlpha(Color.WHITE, 90)
+        c.drawRoundRect(RectF(pr * 0.64f, -pr * 0.24f, pr * 0.8f, -pr * 0.1f), pr * 0.06f, pr * 0.06f, fill)
+
+        stroke.color = withAlpha(cBg, 160)
+        stroke.strokeWidth = 1.2f * density
+        c.drawRoundRect(RectF(-pr * 0.55f, -pr * 0.78f, pr * 0.7f, pr * 0.78f), pr * 0.38f, pr * 0.38f, stroke)
+        c.drawCircle(pr * 0.55f, 0f, pr * 0.52f, stroke)
+
         c.restore()
     }
 
